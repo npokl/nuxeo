@@ -18,7 +18,6 @@
  */
 package org.nuxeo.ecm.platform.search.core;
 
-import java.io.IOException;
 import java.io.Serializable;
 import java.util.Map;
 
@@ -29,46 +28,56 @@ import org.nuxeo.ecm.core.api.DocumentModel;
  */
 public interface SavedSearch extends Serializable {
 
-    enum SavedSearchType {
-
-        QUERY("query"),
-
-        PAGE_PROVIDER("pageProvider");
-
-        private final String name;
-
-        SavedSearchType(final String s) {
-            name = s;
-        }
-
-        public boolean equalsName(String otherName) {
-            return (otherName == null) ? false : name.equals(otherName);
-        }
-
-        @Override
-        public String toString() {
-            return name;
-        }
-    }
-
     String getId();
 
     String getTitle();
 
-    Map<String,String> getParams();
+    Map<String, String> getNamedParams();
 
-    SavedSearchType getSearchType();
+    String getQueryParams();
 
-    String getLangOrProviderName();
+    String getQuery();
+
+    String getQueryLanguage();
+
+    String getPageProviderName();
+
+    Long getPageSize();
+
+    Long getCurrentPageIndex();
+
+    Long getMaxResults();
+
+    String getSortBy();
+
+    String getSortOrder();
+
+    String getContentViewData();
 
     DocumentModel getDocument();
 
     void setTitle(String title);
 
-    void setParams(Map<String,String> params) throws IOException;
+    void setNamedParams(Map<String, String> params);
 
-    void setSearchType(SavedSearchType type);
+    void setQueryParams(String queryParams);
 
-    void setLangOrProviderName(String langOrProviderName);
+    void setQuery(String query);
+
+    void setQueryLanguage(String queryLanguage);
+
+    void setPageProviderName(String pageProviderName);
+
+    void setPageSize(Long pageSize);
+
+    void setCurrentPageIndex(Long currentPageIndex);
+
+    void setMaxResults(Long maxResults);
+
+    void setSortBy(String sortBy);
+
+    void setSortOrder(String sortOrder);
+
+    void setContentViewData(String contentViewData);
 
 }

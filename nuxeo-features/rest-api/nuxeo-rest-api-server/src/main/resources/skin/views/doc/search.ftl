@@ -104,7 +104,7 @@
         "method":"GET",
         "nickname":"executeSavedSearch",
         "type":"documents",
-        <@params names = ["searchId"]/>,
+        <@params names = ["searchId","pageSize","currentPageIndex","maxResults","sortBy","sortOrder"]/>,
         "summary":"Executes saved searches, returning its results.",
         <#include "views/doc/errorresponses.ftl"/>
       }

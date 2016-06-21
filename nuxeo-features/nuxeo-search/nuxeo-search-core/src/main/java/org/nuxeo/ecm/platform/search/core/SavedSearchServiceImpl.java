@@ -42,40 +42,61 @@ import com.google.common.base.Strings;
 public class SavedSearchServiceImpl implements SavedSearchService {
 
     @Override
-    public SavedSearch saveSearch(CoreSession session, SavedSearch search)
-        throws InvalidSearchParameterException, IOException {
-        return saveSearch(session, search.getTitle(), search.getSearchType(), search.getLangOrProviderName(),
-            search.getParams());
-    }
-
-    @Override
-    public SavedSearch saveSearch(CoreSession session, String title, SavedSearch.SavedSearchType searchType,
-        String langOrProviderName, Map<String, String> params)
-        throws InvalidSearchParameterException, IOException {
+    public SavedSearch createSavedSearch(CoreSession session, String title, String queryParams,
+            Map<String, String> namedParams, String query, String queryLanguage, String pageProviderName,
+            Long pageSize, Long currentPageIndex, Long maxResults, String sortBy, String sortOrder,
+            String contentViewData) throws InvalidSearchParameterException, IOException {
         if (Strings.isNullOrEmpty(title)) {
-            throw new InvalidSearchParameterException("invalid title");
+            throw new InvalidSearchParameterException("title cannot be empty");
         }
-        if (Strings.isNullOrEmpty(langOrProviderName)) {
-            throw new InvalidSearchParameterException("invalid language or provider name");
+
+        if ((!Strings.isNullOrEmpty(query) || !Strings.isNullOrEmpty(queryLanguage))
+                && !Strings.isNullOrEmpty(pageProviderName)) {
+            throw new InvalidSearchParameterException("query and page provider parameters are mutually exclusive"
+                    + " (query, queryLanguage, pageProviderName)");
+        }
+
+        if (Strings.isNullOrEmpty(query) && Strings.isNullOrEmpty(queryLanguage)
+                && Strings.isNullOrEmpty(pageProviderName)) {
+            throw new InvalidSearchParameterException("query or page provider parameters are missing"
+                    + " (query, queryLanguage, pageProviderName)");
+        }
+
+        if (!Strings.isNullOrEmpty(query) && Strings.isNullOrEmpty(queryLanguage)) {
+            throw new InvalidSearchParameterException("queryLanguage parameter is missing");
+        }
+
+        if (Strings.isNullOrEmpty(query) && !Strings.isNullOrEmpty(queryLanguage)) {
+            throw new InvalidSearchParameterException("query parameter is missing");
         }
 
         UserWorkspaceService userWorkspaceService = Framework.getLocalService(UserWorkspaceService.class);
         DocumentModel uws = userWorkspaceService.getCurrentUserPersonalWorkspace(session, null);
 
-        String searchDocumentType = (searchType == SavedSearch.SavedSearchType.PAGE_PROVIDER) ?
-            Framework.getLocalService(PageProviderService.class).getPageProviderDefinition(langOrProviderName)
-                .getSearchDocumentType() : null;
+        String searchDocumentType = (!Strings.isNullOrEmpty(pageProviderName)) ? Framework.getLocalService(
+                PageProviderService.class)
+                                                                                          .getPageProviderDefinition(
+                                                                                                  pageProviderName)
+                                                                                          .getSearchDocumentType()
+                : null;
 
         DocumentModel savedSearchDoc = session.createDocumentModel(uws.getPathAsString(), title,
-            searchDocumentType != null ? searchDocumentType :
-                SavedSearchConstants.PARAMETERIZED_SAVED_SEARCH_TYPE_NAME);
+                searchDocumentType != null ? searchDocumentType
+                        : SavedSearchConstants.PARAMETERIZED_SAVED_SEARCH_TYPE_NAME);
 
         SavedSearch savedSearch = savedSearchDoc.getAdapter(SavedSearch.class);
         savedSearch.setTitle(title);
-
-        savedSearch.setLangOrProviderName(langOrProviderName);
-        savedSearch.setSearchType(searchType);
-        savedSearch.setParams(params);
+        savedSearch.setQueryParams(queryParams);
+        savedSearch.setNamedParams(namedParams);
+        savedSearch.setQuery(query);
+        savedSearch.setQueryLanguage(queryLanguage);
+        savedSearch.setPageProviderName(pageProviderName);
+        savedSearch.setPageSize(pageSize);
+        savedSearch.setCurrentPageIndex(currentPageIndex);
+        savedSearch.setMaxResults(maxResults);
+        savedSearch.setSortBy(sortBy);
+        savedSearch.setSortOrder(sortOrder);
+        savedSearch.setContentViewData(contentViewData);
 
         savedSearchDoc = session.createDocument(savedSearchDoc);
         savedSearch = savedSearchDoc.getAdapter(SavedSearch.class);
@@ -89,13 +110,12 @@ public class SavedSearchServiceImpl implements SavedSearchService {
 
         acp.addACL(acl);
         savedSearchDoc.setACP(acp, true);
-        session.saveDocument(savedSearchDoc);
 
         return savedSearch;
     }
 
     @Override
-    public SavedSearch getSearch(CoreSession session, String id) {
+    public SavedSearch getSavedSearch(CoreSession session, String id) {
         DocumentRef docRef = new IdRef(id);
         DocumentModel savedSearchDoc = session.getDocument(docRef);
         if (savedSearchDoc != null) {
@@ -108,39 +128,39 @@ public class SavedSearchServiceImpl implements SavedSearchService {
     }
 
     @Override
-    public SavedSearch updateSearch(CoreSession session, String id, SavedSearch search)
-        throws InvalidSearchParameterException, IOException {
+    public SavedSearch saveSavedSearch(CoreSession session, SavedSearch search) throws InvalidSearchParameterException,
+            IOException {
         if (Strings.isNullOrEmpty(search.getTitle())) {
             throw new InvalidSearchParameterException("title cannot be empty");
         }
-        if (Strings.isNullOrEmpty(search.getLangOrProviderName())) {
-            throw new InvalidSearchParameterException("language or provider name cannot be empty");
+
+        if ((!Strings.isNullOrEmpty(search.getQuery()) || !Strings.isNullOrEmpty(search.getQueryLanguage()))
+                && !Strings.isNullOrEmpty(search.getPageProviderName())) {
+            throw new InvalidSearchParameterException("query and page provider parameters are mutually exclusive"
+                    + " (query, queryLanguage, pageProviderName)");
         }
 
-        DocumentRef docRef = new IdRef(id);
-        DocumentModel savedSearchDoc = session.getDocument(docRef);
-        if (savedSearchDoc == null) {
-            return null;
-        }
-        SavedSearch savedSearch = savedSearchDoc.getAdapter(SavedSearch.class);
-        if (savedSearch == null) {
-            return null;
+        if (Strings.isNullOrEmpty(search.getQuery()) && Strings.isNullOrEmpty(search.getQueryLanguage())
+                && Strings.isNullOrEmpty(search.getPageProviderName())) {
+            throw new InvalidSearchParameterException("query or page provider parameters are missing"
+                    + " (query, queryLanguage, pageProviderName)");
         }
 
-        savedSearch.setTitle(search.getTitle());
-        savedSearch.setLangOrProviderName(search.getLangOrProviderName());
-        savedSearch.setSearchType(search.getSearchType());
-        savedSearch.setParams(search.getParams());
+        if (!Strings.isNullOrEmpty(search.getQuery()) && Strings.isNullOrEmpty(search.getQueryLanguage())) {
+            throw new InvalidSearchParameterException("queryLanguage parameter is missing");
+        }
 
-        savedSearchDoc = session.saveDocument(savedSearchDoc);
-        savedSearch = savedSearchDoc.getAdapter(SavedSearch.class);
+        if (Strings.isNullOrEmpty(search.getQuery()) && !Strings.isNullOrEmpty(search.getQueryLanguage())) {
+            throw new InvalidSearchParameterException("query parameter is missing");
+        }
 
-        return savedSearch;
+        session.saveDocument(search.getDocument());
+
+        return search;
     }
 
     @Override
-    public void deleteSearch(CoreSession session, String id) {
-        DocumentRef docRef = new IdRef(id);
-        session.removeDocument(docRef);
+    public void deleteSavedSearch(CoreSession session, SavedSearch search) {
+        session.removeDocument(new IdRef(search.getId()));
     }
 }

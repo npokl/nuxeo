@@ -30,8 +30,6 @@ public class SavedSearchAdapterFactory implements DocumentAdapterFactory {
     public Object getAdapter(DocumentModel doc, Class<?> itf) {
         if (doc.hasFacet(SavedSearchConstants.SAVED_SEARCH_FACET)) {
             return new SavedSearchImpl(doc);
-        } else if (doc.hasFacet(SavedSearchConstants.PARAMETERIZED_SAVED_SEARCH_FACET)) {
-            return new ParameterizedSavedSearch(doc);
         } else {
             return null;
         }

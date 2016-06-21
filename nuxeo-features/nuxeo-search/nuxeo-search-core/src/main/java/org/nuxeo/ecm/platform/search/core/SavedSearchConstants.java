@@ -23,22 +23,32 @@ package org.nuxeo.ecm.platform.search.core;
  */
 public class SavedSearchConstants {
 
-    public static final String PARAMETERIZED_SAVED_SEARCH_FACET = "ParameterizedSavedSearch";
-
-    public static final String PARAMETERIZED_SAVED_SEARCH_TYPE_NAME = "SavedSearchDoc";
+    public static final String PARAMETERIZED_SAVED_SEARCH_TYPE_NAME = "SavedSearch";
 
     public static final String SAVED_SEARCH_FACET = "SavedSearch";
 
-    public static final String SAVED_SEARCH_TYPE_NAME = "DefaultSearch";
-
-    public static final String SAVED_SEARCH_PROVIDER_NAME_PROPERTY_NAME = "cvd:contentViewName";
-
     public static final String TITLE_PROPERTY_NAME = "dc:title";
 
-    public static final String SEARCH_TYPE_PROPERTY_NAME = "ss:search_type";
+    public static final String NAMED_PARAMS_PROPERTY_NAME = "saved:namedParams";
 
-    public static final String LANG_OR_PROVIDER_NAME_PROPERTY_NAME = "ss:lang_or_provider_name";
+    public static final String QUERY_PARAMS_PROPERTY_NAME = "saved:queryParams";
 
-    public static final String PARAMS_PROPERTY_NAME = "ss:params";
+    public static final String QUERY_PROPERTY_NAME = "saved:query";
+
+    public static final String QUERY_LANGUAGE_PROPERTY_NAME = "saved:queryLanguage";
+
+    public static final String PAGE_PROVIDER_NAME_PROPERTY_NAME = "saved:providerName";
+
+    public static final String PAGE_SIZE_PROPERTY_NAME = "saved:pageSize";
+
+    public static final String CURRENT_PAGE_INDEX_PROPERTY_NAME = "saved:currentPageIndex";
+
+    public static final String MAX_RESULTS_PROPERTY_NAME = "saved:maxResults";
+
+    public static final String SORT_BY_PROPERTY_NAME = "saved:sortBy";
+
+    public static final String SORT_ORDER_PROPERTY_NAME = "saved:sortOrder";
+
+    public static final String CONTENT_VIEW_DATA_PROPERTY_NAME = "saved:contentViewData";
 
 }

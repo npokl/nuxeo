@@ -19,20 +19,30 @@
 package org.nuxeo.ecm.platform.search.core;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON_TYPE;
+import static org.nuxeo.ecm.core.io.registry.MarshallingConstants.WILDCARD_VALUE;
 import static org.nuxeo.ecm.core.io.registry.reflect.Instantiations.SINGLETON;
 import static org.nuxeo.ecm.core.io.registry.reflect.Priorities.REFERENCE;
 
+import java.io.Closeable;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
 
-import org.apache.commons.lang3.reflect.TypeUtils;
+import javax.inject.Inject;
+
 import org.codehaus.jackson.JsonGenerator;
 import org.nuxeo.ecm.core.api.DocumentModel;
+import org.nuxeo.ecm.core.api.model.Property;
 import org.nuxeo.ecm.core.io.marshallers.json.ExtensibleEntityJsonWriter;
 import org.nuxeo.ecm.core.io.marshallers.json.OutputStreamWithJsonWriter;
-import org.nuxeo.ecm.core.io.marshallers.json.enrichers.Enriched;
 import org.nuxeo.ecm.core.io.registry.Writer;
 import org.nuxeo.ecm.core.io.registry.reflect.Setup;
+import org.nuxeo.ecm.core.schema.SchemaManager;
+import org.nuxeo.ecm.core.schema.types.Field;
+import org.nuxeo.ecm.core.schema.types.Schema;
 
 /**
  * @since 8.3
@@ -42,6 +52,9 @@ public class SavedSearchWriter extends ExtensibleEntityJsonWriter<SavedSearch> {
 
     public static final String ENTITY_TYPE = "savedSearch";
 
+    @Inject
+    private SchemaManager schemaManager;
+
     public SavedSearchWriter() {
         super(ENTITY_TYPE, SavedSearch.class);
     }
@@ -50,27 +63,68 @@ public class SavedSearchWriter extends ExtensibleEntityJsonWriter<SavedSearch> {
     protected void writeEntityBody(SavedSearch search, JsonGenerator jg) throws IOException {
         jg.writeStringField("id", search.getId());
         jg.writeStringField("title", search.getTitle());
-        jg.writeStringField("searchType", search.getSearchType().toString());
-        jg.writeStringField("langOrProviderName", search.getLangOrProviderName());
+        jg.writeStringField("queryParams", search.getQueryParams());
+        jg.writeStringField("query", search.getQuery());
+        jg.writeStringField("queryLanguage", search.getQueryLanguage());
+        jg.writeStringField("pageProviderName", search.getPageProviderName());
+        jg.writeStringField("pageSize", search.getPageSize() == null ? null : search.getPageSize().toString());
+        jg.writeStringField("currentPageIndex", search.getCurrentPageIndex() == null ? null
+                : search.getCurrentPageIndex().toString());
+        jg.writeStringField("maxResults", search.getMaxResults() == null ? null : search.getMaxResults().toString());
+        jg.writeStringField("sortBy", search.getSortBy());
+        jg.writeStringField("sortOrder", search.getSortOrder());
+        jg.writeStringField("contentViewData", search.getContentViewData());
 
-        if (search instanceof ParameterizedSavedSearch) {
-            if (search.getParams() != null) {
-                jg.writeObjectFieldStart("params");
-
-                Iterator<String> it = search.getParams().keySet().iterator();
-                while (it.hasNext()) {
-                    String param = it.next();
-                    jg.writeStringField(param, search.getParams().get(param));
-                }
-                jg.writeEndObject();
-            }
-        } else {
-            jg.writeFieldName("searchDocument");
-            Writer<DocumentModel> writer = registry.getWriter(ctx, DocumentModel.class, APPLICATION_JSON_TYPE);
-            OutputStreamWithJsonWriter out = new OutputStreamWithJsonWriter(jg);
-            writer.write(search.getDocument(), Enriched.class, TypeUtils.parameterize(Enriched.class,
-                DocumentModel.class), APPLICATION_JSON_TYPE, out);
+        Map<String, String> params = search.getNamedParams();
+        if (params == null) {
+            params = new HashMap<>();
         }
 
+        jg.writeObjectFieldStart("params");
+        Iterator<String> it = params.keySet().iterator();
+        while (it.hasNext()) {
+            String param = it.next();
+            jg.writeStringField(param, search.getNamedParams().get(param));
+        }
+
+        Set<String> schemas = ctx.getProperties();
+        if (schemas.size() > 0) {
+            DocumentModel doc = search.getDocument();
+            if (schemas.contains(WILDCARD_VALUE)) {
+                // full document
+                for (String schema : doc.getSchemas()) {
+                    writeSchemaProperties(jg, doc, schema);
+                }
+            } else {
+                for (String schema : schemas) {
+                    if (doc.hasSchema(schema)) {
+                        writeSchemaProperties(jg, doc, schema);
+                    }
+                }
+            }
+        }
+
+        jg.writeEndObject();
+    }
+
+    // taken from DocumentModelJsonWriter
+    private void writeSchemaProperties(JsonGenerator jg, DocumentModel doc, String schemaName) throws IOException {
+        Writer<Property> propertyWriter = registry.getWriter(ctx, Property.class, APPLICATION_JSON_TYPE);
+        // provides the current document to the property marshaller
+        try (Closeable resource = ctx.wrap().with(ENTITY_TYPE, doc).open()) {
+            Schema schema = schemaManager.getSchema(schemaName);
+            String prefix = schema.getNamespace().prefix;
+            if (prefix == null || prefix.length() == 0) {
+                prefix = schemaName;
+            }
+            prefix = prefix + ":";
+            for (Field field : schema.getFields()) {
+                String prefixedName = prefix + field.getName().getLocalName();
+                jg.writeFieldName(prefixedName);
+                Property property = doc.getProperty(prefixedName);
+                OutputStream out = new OutputStreamWithJsonWriter(jg);
+                propertyWriter.write(property, Property.class, Property.class, APPLICATION_JSON_TYPE, out);
+            }
+        }
     }
 }

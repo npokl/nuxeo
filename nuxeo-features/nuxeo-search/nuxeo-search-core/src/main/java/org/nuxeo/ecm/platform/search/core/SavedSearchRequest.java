@@ -25,74 +25,158 @@ import org.nuxeo.ecm.core.api.DocumentModel;
 /**
  * @since 8.3
  */
-public class SavedSearchRequest implements SavedSearch {
+public class SavedSearchRequest {
 
     protected String id;
 
     protected String title;
 
-    protected SavedSearchType searchType;
+    protected String queryParams;
 
-    protected String langOrProviderName;
+    protected Map<String, String> namedParams;
 
-    protected Map<String,String> params;
+    protected String query;
 
-    public SavedSearchRequest(String id, String title, SavedSearchType searchType, String langOrProviderName,
-        Map<String,String> params) {
+    protected String queryLanguage;
+
+    protected String pageProviderName;
+
+    protected Long pageSize;
+
+    protected Long currentPageIndex;
+
+    protected Long maxResults;
+
+    protected String sortBy;
+
+    protected String sortOrder;
+
+    protected String contentViewData;
+
+    public SavedSearchRequest(String id, String title, String queryParams, Map<String, String> namedParams,
+            String query, String queryLanguage, String pageProviderName, Long pageSize, Long currentPageIndex,
+            Long maxResults, String sortBy, String sortOrder, String contentViewData) {
         this.id = id;
         this.title = title;
-        this.searchType = searchType;
-        this.langOrProviderName = langOrProviderName;
-        this.params = params;
+        this.queryParams = queryParams;
+        this.namedParams = namedParams;
+        this.query = query;
+        this.queryLanguage = queryLanguage;
+        this.pageProviderName = pageProviderName;
+        this.pageSize = pageSize;
+        this.currentPageIndex = currentPageIndex;
+        this.maxResults = maxResults;
+        this.sortBy = sortBy;
+        this.sortOrder = sortOrder;
+        this.contentViewData = contentViewData;
     }
 
-    @Override
     public String getId() {
         return id;
     }
 
-    @Override
     public String getTitle() {
         return title;
     }
 
-    @Override
-    public Map<String,String> getParams() {
-        return params;
+    public String getQueryParams() {
+        return queryParams;
     }
 
-    @Override
-    public SavedSearchType getSearchType() {
-        return searchType;
+    public Map<String, String> getNamedParams() {
+        return namedParams;
     }
 
-    @Override
-    public String getLangOrProviderName() {
-        return langOrProviderName;
+    public String getQuery() {
+        return query;
     }
 
-    @Override
+    public String getQueryLanguage() {
+        return queryLanguage;
+    }
+
+    public String getPageProviderName() {
+        return pageProviderName;
+    }
+
+    public Long getPageSize() {
+        return pageSize;
+    }
+
+    public Long getCurrentPageIndex() {
+        return currentPageIndex;
+    }
+
+    public Long getMaxResults() {
+        return maxResults;
+    }
+
+    public String getSortBy() {
+        return sortBy;
+    }
+
+    public String getSortOrder() {
+        return sortOrder;
+    }
+
+    public String getContentViewData() {
+        return contentViewData;
+    }
+
     public DocumentModel getDocument() {
         return null;
     }
 
-    @Override
+    public void setId(String id) {
+        this.id = id;
+    }
+
     public void setTitle(String title) {
         this.title = title;
     }
 
-    @Override
-    public void setSearchType(SavedSearchType searchType) {
-        this.searchType = searchType;
+    public void setQueryParams(String queryParams) {
+        this.queryParams = queryParams;
     }
 
-    @Override
-    public void setLangOrProviderName(String langOrProviderName) {
-        this.langOrProviderName = langOrProviderName;
+    public void setNamedParams(Map<String, String> namedParams) {
+        this.namedParams = namedParams;
     }
 
-    @Override
-    public void setParams(Map<String,String> params) {
-        this.params = params;
+    public void setQuery(String query) {
+        this.query = query;
     }
+
+    public void setQueryLanguage(String queryLanguage) {
+        this.queryLanguage = queryLanguage;
+    }
+
+    public void setPageProviderName(String pageProviderName) {
+        this.pageProviderName = pageProviderName;
+    }
+
+    public void setPageSize(Long pageSize) {
+        this.pageSize = pageSize;
+    }
+
+    public void setCurrentPageIndex(Long currentPageIndex) {
+        this.currentPageIndex = currentPageIndex;
+    }
+
+    public void setMaxResults(Long maxResults) {
+        this.maxResults = maxResults;
+    }
+
+    public void setSortBy(String sortBy) {
+        this.sortBy = sortBy;
+    }
+
+    public void setSortOrder(String sortOrder) {
+        this.sortOrder = sortOrder;
+    }
+
+    public void setContentViewData(String contentViewData) {
+        this.contentViewData = contentViewData;
+    }
+
 }

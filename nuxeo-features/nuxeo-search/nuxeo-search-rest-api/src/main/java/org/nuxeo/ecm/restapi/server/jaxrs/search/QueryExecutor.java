@@ -109,7 +109,7 @@ public abstract class QueryExecutor extends AbstractResource<ResourceTypeImpl> {
         langPathMap.put(LangParams.NXQL, NXQL);
     }
 
-    public String getQuery(MultivaluedMap<String, String> queryParams) {
+    protected String getQuery(MultivaluedMap<String, String> queryParams) {
         String query = queryParams.getFirst(QUERY);
         if (query == null) {
             query = "SELECT * from Document";
@@ -117,7 +117,7 @@ public abstract class QueryExecutor extends AbstractResource<ResourceTypeImpl> {
         return query;
     }
 
-    public Long getCurrentPageIndex(MultivaluedMap<String, String> queryParams) {
+    protected Long getCurrentPageIndex(MultivaluedMap<String, String> queryParams) {
         String currentPageIndex = queryParams.getFirst(CURRENT_PAGE_INDEX);
         if (currentPageIndex != null && !currentPageIndex.isEmpty()) {
             return Long.valueOf(currentPageIndex);
@@ -125,7 +125,7 @@ public abstract class QueryExecutor extends AbstractResource<ResourceTypeImpl> {
         return null;
     }
 
-    public Long getPageSize(MultivaluedMap<String, String> queryParams) {
+    protected Long getPageSize(MultivaluedMap<String, String> queryParams) {
         String pageSize = queryParams.getFirst(PAGE_SIZE);
         if (pageSize != null && !pageSize.isEmpty()) {
             return Long.valueOf(pageSize);
@@ -133,7 +133,7 @@ public abstract class QueryExecutor extends AbstractResource<ResourceTypeImpl> {
         return null;
     }
 
-    public Long getMaxResults(MultivaluedMap<String, String> queryParams) {
+    protected Long getMaxResults(MultivaluedMap<String, String> queryParams) {
         String maxResults = queryParams.getFirst(MAX_RESULTS);
         if (maxResults != null && !maxResults.isEmpty()) {
             return Long.valueOf(maxResults);
@@ -141,7 +141,7 @@ public abstract class QueryExecutor extends AbstractResource<ResourceTypeImpl> {
         return null;
     }
 
-    public List<SortInfo> getSortInfo(MultivaluedMap<String, String> queryParams) {
+    protected List<SortInfo> getSortInfo(MultivaluedMap<String, String> queryParams) {
         String sortBy = queryParams.getFirst(SORT_BY);
         String sortOrder = queryParams.getFirst(SORT_ORDER);
         List<SortInfo> sortInfoList = new ArrayList<>();
@@ -160,7 +160,24 @@ public abstract class QueryExecutor extends AbstractResource<ResourceTypeImpl> {
         return sortInfoList;
     }
 
-    public Properties getNamedParameters(MultivaluedMap<String, String> queryParams) {
+    protected List<SortInfo> getSortInfo(String sortBy, String sortOrder) {
+        List<SortInfo> sortInfoList = new ArrayList<>();
+        if (!StringUtils.isBlank(sortBy)) {
+            String[] sorts = sortBy.split(",");
+            String[] orders = null;
+            if (!StringUtils.isBlank(sortOrder)) {
+                orders = sortOrder.split(",");
+            }
+            for (int i = 0; i < sorts.length; i++) {
+                String sort = sorts[i];
+                boolean sortAscending = (orders != null && orders.length > i && "asc".equals(orders[i].toLowerCase()));
+                sortInfoList.add(new SortInfo(sort, sortAscending));
+            }
+        }
+        return sortInfoList;
+    }
+
+    protected Properties getNamedParameters(MultivaluedMap<String, String> queryParams) {
         Properties namedParameters = new Properties();
         for (String namedParameterKey : queryParams.keySet()) {
             if (!queryParametersMap.containsValue(namedParameterKey)) {
@@ -178,25 +195,48 @@ public abstract class QueryExecutor extends AbstractResource<ResourceTypeImpl> {
         return namedParameters;
     }
 
-    public Object[] getParameters(MultivaluedMap<String, String> queryParams) {
+    protected Properties getNamedParameters(Map<String, String> queryParams) {
+        Properties namedParameters = new Properties();
+        for (String namedParameterKey : queryParams.keySet()) {
+            if (!queryParametersMap.containsValue(namedParameterKey)) {
+                String value = queryParams.get(namedParameterKey);
+                if (value != null) {
+                    if (value.equals(CURRENT_USERID_PATTERN)) {
+                        value = ctx.getCoreSession().getPrincipal().getName();
+                    } else if (value.equals(CURRENT_REPO_PATTERN)) {
+                        value = ctx.getCoreSession().getRepositoryName();
+                    }
+                }
+                namedParameters.put(namedParameterKey, value);
+            }
+        }
+        return namedParameters;
+    }
+
+    protected Object[] getParameters(MultivaluedMap<String, String> queryParams) {
         List<String> orderedParams = queryParams.get(ORDERED_PARAMS);
         if (orderedParams != null && !orderedParams.isEmpty()) {
             Object[] parameters = orderedParams.toArray(new String[orderedParams.size()]);
             // expand specific parameters
-            for (int idx = 0; idx < parameters.length; idx++) {
-                String value = (String) parameters[idx];
-                if (value.equals(CURRENT_USERID_PATTERN)) {
-                    parameters[idx] = ctx.getCoreSession().getPrincipal().getName();
-                } else if (value.equals(CURRENT_REPO_PATTERN)) {
-                    parameters[idx] = ctx.getCoreSession().getRepositoryName();
-                }
-            }
+            replaceParameterPattern(parameters);
             return parameters;
         }
         return null;
     }
 
-    public Map<String, Serializable> getProperties() {
+    protected Object[] replaceParameterPattern(Object[] parameters) {
+        for (int idx = 0; idx < parameters.length; idx++) {
+            String value = (String) parameters[idx];
+            if (value.equals(CURRENT_USERID_PATTERN)) {
+                parameters[idx] = ctx.getCoreSession().getPrincipal().getName();
+            } else if (value.equals(CURRENT_REPO_PATTERN)) {
+                parameters[idx] = ctx.getCoreSession().getRepositoryName();
+            }
+        }
+        return parameters;
+    }
+
+    protected Map<String, Serializable> getProperties() {
         Map<String, Serializable> props = new HashMap<String, Serializable>();
         props.put(CoreQueryDocumentPageProvider.CORE_SESSION_PROPERTY, (Serializable) ctx.getCoreSession());
         return props;
@@ -220,23 +260,8 @@ public abstract class QueryExecutor extends AbstractResource<ResourceTypeImpl> {
         DocumentModel searchDocumentModel = getSearchDocumentModel(ctx.getCoreSession(), pageProviderService, null,
             namedParameters);
 
-        PageProviderDefinition ppdefinition = pageProviderService.getPageProviderDefinition(SearchAdapter.pageProviderName);
-        ppdefinition.setPattern(query);
-        if (maxResults != null && maxResults != -1) {
-            // set the maxResults to avoid slowing down queries
-            ppdefinition.getProperties().put("maxResults", maxResults.toString());
-        }
-        PaginableDocumentModelListImpl res = new PaginableDocumentModelListImpl(
-            (PageProvider<DocumentModel>) pageProviderService.getPageProvider(SearchAdapter.pageProviderName,
-                ppdefinition, searchDocumentModel, sortInfo, pageSize, currentPageIndex, props, parameters),
-            null);
-
-        if (res.hasError()) {
-            RestOperationException err = new RestOperationException(res.getErrorMessage());
-            err.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            throw err;
-        }
-        return res;
+        return queryByLang(query, pageSize, currentPageIndex, maxResults, sortInfo, parameters, props,
+            searchDocumentModel);
     }
 
     protected DocumentModelList queryByPageProvider(String pageProviderName, MultivaluedMap<String, String> queryParams)
@@ -255,9 +280,25 @@ public abstract class QueryExecutor extends AbstractResource<ResourceTypeImpl> {
         DocumentModel searchDocumentModel = getSearchDocumentModel(ctx.getCoreSession(), pageProviderService,
             pageProviderName, namedParameters);
 
+        return queryByPageProvider(pageProviderName, pageSize, currentPageIndex, sortInfo, parameters, props,
+            searchDocumentModel);
+    }
+
+    protected DocumentModelList queryByLang(String query, Long pageSize, Long currentPageIndex, Long maxResults,
+        List<SortInfo> sortInfo, Object[] parameters, Map<String, Serializable> props,
+        DocumentModel searchDocumentModel) throws RestOperationException {
+        PageProviderDefinition ppdefinition = pageProviderService.getPageProviderDefinition(
+            SearchAdapter.pageProviderName);
+        ppdefinition.setPattern(query);
+        if (maxResults != null && maxResults != -1) {
+            // set the maxResults to avoid slowing down queries
+            ppdefinition.getProperties().put("maxResults", maxResults.toString());
+        }
         PaginableDocumentModelListImpl res = new PaginableDocumentModelListImpl(
-            (PageProvider<DocumentModel>) pageProviderService.getPageProvider(pageProviderName, searchDocumentModel,
-                sortInfo, pageSize, currentPageIndex, props, parameters), null);
+            (PageProvider<DocumentModel>) pageProviderService.getPageProvider(SearchAdapter.pageProviderName,
+                ppdefinition, searchDocumentModel, sortInfo, pageSize, currentPageIndex, props, parameters),
+            null);
+
         if (res.hasError()) {
             RestOperationException err = new RestOperationException(res.getErrorMessage());
             err.setStatus(HttpServletResponse.SC_BAD_REQUEST);
@@ -266,21 +307,9 @@ public abstract class QueryExecutor extends AbstractResource<ResourceTypeImpl> {
         return res;
     }
 
-    protected DocumentModelList queryByPageProvider(String pageProviderName,
-        MultivaluedMap<String, String> queryParams, DocumentModel searchDocumentModel)
-        throws RestOperationException {
-        if (pageProviderName == null || langPathMap.containsValue(pageProviderName)) {
-            throw new RestOperationException("invalid page provider name", HttpServletResponse.SC_BAD_REQUEST);
-        }
-
-        Long pageSize = searchDocumentModel.hasSchema("content_view_display") ?
-            (Long)searchDocumentModel.getPropertyValue("cvd:pageSize") :  getPageSize(queryParams);
-        Long currentPageIndex = getCurrentPageIndex(queryParams);
-        Object[] parameters = getParameters(queryParams);
-        List<SortInfo> sortInfo = searchDocumentModel.hasSchema("content_view_display") ?
-            (List<SortInfo>)searchDocumentModel.getPropertyValue("cvd:sortInfos") : getSortInfo(queryParams);
-        Map<String, Serializable> props = getProperties();
-
+    protected DocumentModelList queryByPageProvider(String pageProviderName, Long pageSize, Long currentPageIndex,
+        List<SortInfo> sortInfo, Object[] parameters, Map<String, Serializable> props,
+        DocumentModel searchDocumentModel) throws RestOperationException {
         PaginableDocumentModelListImpl res = new PaginableDocumentModelListImpl(
             (PageProvider<DocumentModel>) pageProviderService.getPageProvider(pageProviderName, searchDocumentModel,
                 sortInfo, pageSize, currentPageIndex, props, parameters), null);
@@ -345,4 +374,5 @@ public abstract class QueryExecutor extends AbstractResource<ResourceTypeImpl> {
             .entity(message)
             .build();
     }
+
 }

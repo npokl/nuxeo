@@ -19,18 +19,55 @@
           "type": "string",
           "required": true
       },
-      "searchType": {
+      "query": {
           "uniqueItems": false,
           "type": "string",
-          "required": true
+          "required": false
       },
-      "langOrProviderName": {
+      "queryLanguage": {
           "uniqueItems": false,
           "type": "string",
-          "required": true
+          "required": false
+      },
+      "pageProviderName": {
+          "uniqueItems": false,
+          "type": "string",
+          "required": false
+      },
+      "pageSize": {
+          "uniqueItems": false,
+          "type": "string",
+          "required": false
+      },
+      "currentPageIndex": {
+          "uniqueItems": false,
+          "type": "string",
+          "required": false
+      },
+      "maxResults": {
+          "uniqueItems": false,
+          "type": "string",
+          "required": false
+      },
+      "sortBy": {
+          "uniqueItems": false,
+          "type": "string",
+          "required": false
+      },
+      "sortOrder": {
+          "uniqueItems": false,
+          "type": "string",
+          "required": false
+      },
+      "queryParams": {
+          "uniqueItems": false,
+          "type": "string",
+          "required": false
       },
       "params": {
-          "$ref":"params"
+          "uniqueItems": false,
+          "type": "object",
+          "required": false
       }
   }
 },
@@ -59,42 +96,5 @@
 "params" : {
   "id": "params",
   "required": false,
-  "uniqueItems": false,
-  "properties": {
-    "query": {
-        "uniqueItems": false,
-        "type": "string",
-        "required": false
-    },
-    "pageSize": {
-        "uniqueItems": false,
-        "type": "string",
-        "required": false
-    },
-    "currentPageIndex": {
-        "uniqueItems": false,
-        "type": "string",
-        "required": false
-    },
-    "maxResults": {
-        "uniqueItems": false,
-        "type": "string",
-        "required": false
-    },
-    "sortBy": {
-        "uniqueItems": false,
-        "type": "string",
-        "required": false
-    },
-    "sortOrder": {
-        "uniqueItems": false,
-        "type": "string",
-        "required": false
-    },
-    "queryParams": {
-        "uniqueItems": false,
-        "type": "object",
-        "required": false
-    }
-  }
+  "uniqueItems": false
 }

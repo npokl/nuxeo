@@ -21,9 +21,8 @@ package org.nuxeo.ecm.restapi.server.jaxrs.search.test;
 
 import java.io.IOException;
 import java.util.Calendar;
-import java.util.HashMap;
-import java.util.Map;
 
+import org.nuxeo.ecm.automation.core.util.DocumentHelper;
 import org.nuxeo.ecm.core.api.CoreSession;
 import org.nuxeo.ecm.core.api.DocumentModel;
 import org.nuxeo.ecm.core.api.PathRef;
@@ -80,30 +79,28 @@ public class RestServerInit implements RepositoryInit {
 
         // Create some saved searches
         SavedSearchService savedSearchService = Framework.getLocalService(SavedSearchService.class);
-        Map<String, String> params = new HashMap<>();
-
-        params.put("pageSize", "2");
-        params.put("queryParams", "$currentUser");
-        params.put("query", "select * from Document where " + "dc:creator = ?");
+        SavedSearch search;
         try {
-            savedSearchService.saveSearch(session, "my saved search 1", SavedSearch.SavedSearchType.QUERY, "NXQL",
-                params).getId();
-        } catch (IOException e) {}
+            search = savedSearchService.createSavedSearch(session, "my saved search 1", "$currentUser", null,
+                    "select * from Document where dc:creator = ?", "NXQL", null, 2L, null, null, null, null, null);
+            savedSearchService.saveSavedSearch(session, search);
+        } catch (IOException e) {
+        }
 
-        params = new HashMap<>();
-        params.put("queryParams", RestServerInit.getFolder(1, session).getId());
         try {
-            savedSearchService.saveSearch(session, "my saved search 2", SavedSearch.SavedSearchType.PAGE_PROVIDER,
-                "TEST_PP", params).getId();
-        } catch (IOException e) {}
+            search = savedSearchService.createSavedSearch(session, "my saved search 2",
+                    RestServerInit.getFolder(1, session).getId(), null, null, null, "TEST_PP", null, null, null, null,
+                    null, null);
+            savedSearchService.saveSavedSearch(session, search);
+        } catch (IOException e) {
+        }
 
-        params = new HashMap<>();
-        params.put("pageSize", "2");
-        params.put("ecm_fulltext", "Note*");
-        params.put("dc_modified_agg", "[\"lastWeek\"]");
         try {
-            savedSearchService.saveSearch(session, "my saved search 3", SavedSearch.SavedSearchType.PAGE_PROVIDER,
-                "default_search", params).getId();
+            search = savedSearchService.createSavedSearch(session, "my saved search 3", null, null, null, null,
+                    "default_search", 2L, null, null, null, null, null);
+            DocumentHelper.setProperty(session, search.getDocument(), "ecm_fulltext", "Note*");
+            DocumentHelper.setProperty(session, search.getDocument(), "dc_modified_agg", "[\"lastWeek\"]");
+            savedSearchService.saveSavedSearch(session, search);
         } catch (IOException e) {
             System.err.println(e.getMessage());
         }

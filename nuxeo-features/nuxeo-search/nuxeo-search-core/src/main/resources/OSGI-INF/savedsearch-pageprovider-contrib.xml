@@ -6,25 +6,28 @@
 
     <coreQueryPageProvider name="SAVED_SEARCHES_ALL">
       <pattern>
-        SELECT * FROM Document WHERE (ecm:mixinType = 'ParameterizedSavedSearch'
-        OR (ecm:mixinType = 'SavedSearch' AND cvd:contentViewName IS NOT NULL))
+        SELECT * FROM Document WHERE ecm:mixinType = 'SavedSearch'
+        AND ((saved:query IS NOT NULL AND saved:queryLanguage IS NOT NULL)
+              OR saved:providerName IS NOT NULL)
         AND ecm:isProxy = 0
         AND ecm:isCheckedInVersion = 0
         AND ecm:currentLifeCycleState != 'deleted'
       </pattern>
+      <sort column="dc:title" ascending="true" />
       <pageSize>50</pageSize>
     </coreQueryPageProvider>
 
     <coreQueryPageProvider name="SAVED_SEARCHES_ALL_PAGE_PROVIDER">
       <pattern>
-        SELECT * FROM Document WHERE ecm:isProxy = 0
+        SELECT * FROM Document WHERE ecm:mixinType = 'SavedSearch'
+        AND ((saved:query IS NOT NULL AND saved:queryLanguage IS NOT NULL)
+              OR saved:providerName IS NOT NULL)
+        AND ecm:isProxy = 0
         AND ecm:isCheckedInVersion = 0
         AND ecm:currentLifeCycleState != 'deleted'
-        AND ((ecm:mixinType = 'ParameterizedSavedSearch'
-              AND ss:search_type = 'pageProvider'
-              AND ss:lang_or_provider_name = :pageProvider)
-        OR (ecm:mixinType = 'SavedSearch' AND cvd:contentViewName IS NOT NULL))
+        AND saved:providerName = :pageProvider
       </pattern>
+      <sort column="dc:title" ascending="true" />
       <pageSize>50</pageSize>
     </coreQueryPageProvider>
 

@@ -26,53 +26,66 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-import javax.ws.rs.core.Response;
-
 import org.codehaus.jackson.JsonNode;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.nuxeo.ecm.core.io.marshallers.json.EntityJsonReader;
 import org.nuxeo.ecm.core.io.registry.reflect.Setup;
-import org.nuxeo.ecm.webengine.WebException;
 
 /**
  * @since 8.3
  */
 @Setup(mode = SINGLETON, priority = REFERENCE)
-public class SavedSearchRequestReader extends EntityJsonReader<SavedSearch> {
+public class SavedSearchRequestReader extends EntityJsonReader<SavedSearchRequest> {
 
     public SavedSearchRequestReader() {
         super(SavedSearchWriter.ENTITY_TYPE);
     }
 
     @Override
-    protected SavedSearch readEntity(JsonNode jn) throws IOException {
+    protected SavedSearchRequest readEntity(JsonNode jn) throws IOException {
         String id = getStringField(jn, "id");
         String title = getStringField(jn, "title");
-        String searchType = getStringField(jn, "searchType");
-        String langOrProviderName = getStringField(jn, "langOrProviderName");
+        String queryParams = getStringField(jn, "queryParams");
+        String query = getStringField(jn, "query");
+        String queryLanguage = getStringField(jn, "queryLanguage");
+        String pageProviderName = getStringField(jn, "pageProviderName");
+        Long pageSize = getLongField(jn, "pageSize");
+        Long currentPageIndex = getLongField(jn, "currentPageIndex");
+        Long maxResults = getLongField(jn, "maxResults");
+        String sortBy = getStringField(jn, "sortBy");
+        String sortOrder = getStringField(jn, "sortOrder");
+        String contentViewData = getStringField(jn, "contentViewData");
         JsonNode queryParamsNode = jn.has("params") ? jn.get("params") : null;
 
-        Map<String, String> queryParams = new HashMap<>();
-
+        Map<String, String> params = new HashMap<>();
+        ObjectMapper mapper = new ObjectMapper();
         if (queryParamsNode != null) {
             Iterator<Map.Entry<String, JsonNode>> fields = queryParamsNode.getFields();
             while (fields.hasNext()) {
                 Map.Entry<String, JsonNode> fieldEntry = fields.next();
-                if (fieldEntry.getValue().isValueNode()) {
-                    queryParams.put(fieldEntry.getKey(), fieldEntry.getValue().getTextValue());
-                } else {
-                    throw new WebException("Invalid query parameters format" + fieldEntry.getKey(),
-                            Response.Status.BAD_REQUEST.getStatusCode());
-                }
+                params.put(
+                        fieldEntry.getKey(),
+                        fieldEntry.getValue().isTextual() ? fieldEntry.getValue().getTextValue()
+                                : mapper.writeValueAsString(fieldEntry.getValue()));
             }
         }
 
-        SavedSearch.SavedSearchType type = null;
-        if (SavedSearch.SavedSearchType.QUERY.equalsName(searchType)) {
-            type = SavedSearch.SavedSearchType.QUERY;
-        } else if (SavedSearch.SavedSearchType.PAGE_PROVIDER.equalsName(searchType)) {
-            type = SavedSearch.SavedSearchType.PAGE_PROVIDER;
-        }
+        return new SavedSearchRequest(id, title, queryParams, params, query, queryLanguage, pageProviderName, pageSize,
+                currentPageIndex, maxResults, sortBy, sortOrder, contentViewData);
+    }
 
-        return new SavedSearchRequest(id, title, type, langOrProviderName, queryParams);
+    protected Long getLongField(JsonNode jn, String elName) {
+        JsonNode elNode = jn.get(elName);
+        if (elNode != null && !elNode.isNull()) {
+            if (elNode.isNumber()) {
+                return elNode.getLongValue();
+            } else if (elNode.isTextual()) {
+                return Long.valueOf(elNode.getTextValue());
+            } else {
+                return null;
+            }
+        } else {
+            return null;
+        }
     }
 }

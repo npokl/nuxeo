@@ -28,15 +28,15 @@ import org.nuxeo.ecm.core.api.CoreSession;
  */
 public interface SavedSearchService {
 
-    SavedSearch saveSearch(CoreSession session, SavedSearch search) throws InvalidSearchParameterException, IOException;
+    SavedSearch createSavedSearch(CoreSession session, String title, String queryParams,
+            Map<String, String> namedParams, String query, String queryLanguage, String pageProviderName,
+            Long pageSize, Long currentPageIndex, Long maxResults, String sortBy, String sortOrder,
+            String contentViewData) throws InvalidSearchParameterException, IOException;
 
-    SavedSearch saveSearch(CoreSession session, String title, SavedSearch.SavedSearchType searchType,
-            String langOrProviderName, Map<String, String> params) throws InvalidSearchParameterException, IOException;
+    SavedSearch getSavedSearch(CoreSession session, String id);
 
-    SavedSearch getSearch(CoreSession session, String id);
+    SavedSearch saveSavedSearch(CoreSession session, SavedSearch search) throws InvalidSearchParameterException,
+            IOException;
 
-    SavedSearch updateSearch(CoreSession session, String id, SavedSearch search)
-            throws InvalidSearchParameterException, IOException;
-
-    void deleteSearch(CoreSession session, String id);
+    void deleteSavedSearch(CoreSession session, SavedSearch search);
 }
